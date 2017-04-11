@@ -9,23 +9,24 @@ module marquee
   type WebElements = IWebElement array
 
   exception WaitTimeoutException
-  exception WebElementsAreDisplayed of WebElements
+  exception NoWebElementsDisplayed of string
+  exception WebElementsDoNotMatchSuppliedText of string
 
   let private wait (timeout : int) (continueFunction : ContinueFunction<'T>) =
     let stopwatch = System.Diagnostics.Stopwatch.StartNew()
     let rec testContinueFunction lastActivationTime =
       let elapsedMilliseconds = stopwatch.Elapsed.TotalMilliseconds
-      match System.BitConverter.DoubleToInt64Bits(elapsedMilliseconds) >= (int64 timeout) with
+      match elapsedMilliseconds - (float timeout) >= 0.001 with
       | true ->
         raise WaitTimeoutException
       | false ->
         match (elapsedMilliseconds - lastActivationTime) >= 1000.0 with
         | true ->
-          let lastActivationTime = stopwatch.Elapsed.TotalMilliseconds
           match continueFunction() with
           | WaitSuccessful result ->
             result
           | WaitFailure ->
+            let lastActivationTime = stopwatch.Elapsed.TotalMilliseconds
             testContinueFunction lastActivationTime
         | false ->
           testContinueFunction lastActivationTime
@@ -35,10 +36,11 @@ module marquee
     try
       let continueFunction : ContinueFunction<WebElements> =
         fun _ ->
-          let elements = browser.FindElements(cssSelector) |> Seq.toArray
-          match elements |> Array.isEmpty with
-          | true -> WaitFailure
-          | false -> WaitSuccessful elements
+          let elements = browser.FindElements((By.CssSelector cssSelector)) |> Seq.toArray
+          match elements with
+          | [||] -> WaitFailure
+          | elements -> 
+            WaitSuccessful elements
       let elements =
         wait timeout continueFunction
       elements
@@ -74,8 +76,9 @@ module marquee
           new OpenQA.Selenium.Firefox.FirefoxDriver(options) :> IWebDriver
       { instance = browserInstance; elementTimeout = 5000 }
 
-    member private this.FindElements cssSelector =
-      let elements = findElementsByCssSelector this.elementTimeout cssSelector this.instance
+    member this.FindElements cssSelector =
+      let searchContext : ISearchContext = this.instance :> ISearchContext
+      let elements = findElementsByCssSelector this.elementTimeout cssSelector searchContext
       elements
 
     member this.Click cssSelector =
@@ -86,10 +89,24 @@ module marquee
       let isShown (element : IWebElement) =
         let opacity = element.GetCssValue("opacity")
         let display = element.GetCssValue("display")
-        match (display, opacity) with
-        | ("none", "1") -> true
-        | _ -> false
+        display <> "none" && opacity = "1"
       let elements = this.FindElements cssSelector
       match elements |> Array.filter(isShown) with
-      | [||] -> ()
-      | itemsDisplayed -> raise <| WebElementsAreDisplayed itemsDisplayed
+      | [||] -> raise <| NoWebElementsDisplayed cssSelector
+      | itemsDisplayed -> () 
+
+    member this.Url (url : string) =
+      this.instance.Navigate().GoToUrl(url)
+
+    member this.ElementTextEquals testText cssSelector =
+      let elements = this.FindElements cssSelector
+      let readText = fun (element : IWebElement) ->
+        match element.TagName.ToLower() with
+        | "input" | "textarea" -> element.GetAttribute("value")
+        | _ -> 
+          element.Text
+      match elements |> Array.filter(fun element -> (readText element) <> testText) with
+      | [||] -> () 
+      | elements -> 
+        let elements = elements |> Array.map(fun element -> readText element)
+        raise <| WebElementsDoNotMatchSuppliedText (sprintf "%s is not found in %A" testText elements)

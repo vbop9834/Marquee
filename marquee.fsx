@@ -6,4 +6,10 @@
 #load "marquee.fs"
 
 open marquee
-Firefox __SOURCE_DIRECTORY__ |> Browser.Create
+let browser = Chrome __SOURCE_DIRECTORY__ |> Browser.Create
+browser.Url "http://lefthandedgoat.github.io/canopy/testpages/"
+"#button_clicked" |> browser.ElementTextEquals "button not clicked"
+browser.Click "#button"
+"#button_clicked" |> browser.ElementTextEquals "button clicked"
+browser.Displayed "#welcome"
+"#welcome" |> browser.ElementTextEquals "Welcome"

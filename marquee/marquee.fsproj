@@ -43,6 +43,7 @@
     <Compile Include="marquee.fs" />
     <None Include="Script.fsx" />
     <Compile Include="testManager.fs" />
+    <Compile Include="consoleReporter.fs" />
   </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">14</MinimumVisualStudioVersion>

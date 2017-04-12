@@ -204,7 +204,7 @@ type TestManager =
     mailbox : TestManagerInstance
   }
 
-  static member Create resultsFunction amountOfBrowsers (browserType : marquee.BrowserType) =
+  static member Create (resultsFunction : TestResultsFunction) amountOfBrowsers (browserType : marquee.BrowserType) =
     let testReporter = TestReporter.Create resultsFunction
     let testManager = 
       TestManagerInstance.Start(fun inbox ->

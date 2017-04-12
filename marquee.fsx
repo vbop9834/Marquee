@@ -5,12 +5,14 @@
 #r "WebDriver.dll"
 #load "marquee.fs"
 #load "testManager.fs"
+#load "consoleReporter.fs"
 
 open marquee
 open testManager
 
 let amountOfBrowsers = 5
-let testManager = Chrome __SOURCE_DIRECTORY__ |> TestManager.Create amountOfBrowsers
+let resultsFunction = consoleReporter.resultsFunction
+let testManager = Chrome __SOURCE_DIRECTORY__ |> TestManager.Create resultsFunction amountOfBrowsers
 let (--) testDescription testFunc = testManager.Register (testDescription, testFunc)
 
 let registerATest () =

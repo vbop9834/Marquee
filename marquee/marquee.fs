@@ -15,6 +15,8 @@ module marquee
   exception WebElementSelectDoesNotContainText of string
   exception WebElementIsNotChecked of IWebElement
   exception WebElementIsChecked of IWebElement
+  exception NoOptionInSelectThatMatchesText of string
+  exception OptionIsNotSelected of string
 
   let private wait (timeout : int) (continueFunction : ContinueFunction<'T>) =
     let stopwatch = System.Diagnostics.Stopwatch.StartNew()
@@ -175,3 +177,23 @@ module marquee
         | true -> raise <| WebElementIsChecked element
         | false -> ()
       elements |> Array.iter testElement
+
+    member this.SetSelectOption option selectCssSelector =
+      let cssSelector = sprintf "%s option" selectCssSelector
+      let elements = 
+        this.FindElements cssSelector
+        |> Array.filter(fun element -> element.Text = option)
+      match elements with
+      | [||] -> raise <| NoOptionInSelectThatMatchesText option
+      | elements -> elements |> Array.iter(fun element -> element.Click())
+
+    member this.IsOptionSelected option selectCssSelector =
+      let cssSelector = sprintf "%s option" selectCssSelector
+      let elements = 
+        this.FindElements cssSelector
+      match elements |> Array.tryFind(fun element -> element.Text = option) with 
+      | None -> raise <| NoOptionInSelectThatMatchesText option
+      | Some element ->
+        match element.Selected with
+        | true -> ()
+        | false -> raise <| OptionIsNotSelected option

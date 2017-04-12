@@ -37,6 +37,9 @@ let lastNameSelector = "#lastName"
 let tableSelector = "#value_list td"
 let itemListSelector = "#item_list option"
 let checkboxSelector = "#checkbox"
+let radioOneSelector = "#radio1"
+let radioTwoSelector = "#radio2"
+let statesListSelector = "#states"
 
 "Navigating to the test page and clicking a button should change the button text" -- fun browser ->
   browser.Url testPageUrl
@@ -91,6 +94,28 @@ let checkboxSelector = "#checkbox"
   checkboxSelector |> browser.AreElementsChecked
   checkboxSelector |> browser.UnCheckElements
   checkboxSelector |> browser.AreElementsUnChecked
+
+"Should be able to check a radio button" -- fun browser ->
+  browser.Url testPageUrl
+  //Check radios are unchecked
+  radioOneSelector |> browser.AreElementsUnChecked
+  radioTwoSelector |> browser.AreElementsUnChecked
+  //Click radio one
+  radioOneSelector |> browser.Click
+  //Check radio one is selected and two is not
+  radioOneSelector |> browser.AreElementsChecked
+  radioTwoSelector |> browser.AreElementsUnChecked
+  //Click radio two
+  radioTwoSelector |> browser.Click
+  //Check radio two is selected and one is not
+  radioTwoSelector |> browser.AreElementsChecked
+  radioOneSelector |> browser.AreElementsUnChecked
+
+"Should be able to select an item in a select list" -- fun browser ->
+  browser.Url testPageUrl
+  statesListSelector |> browser.IsOptionSelected "Select"
+  statesListSelector |> browser.SetSelectOption "Kingman Reef"
+  statesListSelector |> browser.IsOptionSelected "Kingman Reef"
 
 testManager.RunTests ()
 let exitCode = testManager.ReportResults ()

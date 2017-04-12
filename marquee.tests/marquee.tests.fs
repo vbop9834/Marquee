@@ -6,6 +6,7 @@ open testManager
 let amountOfBrowsers = 10
 let resultsFunction = fun results ->
   printfn "Test Results"
+  printfn "----------------------------------"
   let printResultsToScreen (testDescription, testResult) =
     printfn "%s" testDescription
     match testResult with
@@ -20,7 +21,8 @@ let resultsFunction = fun results ->
   let testExitCodes = 
     results 
     |> List.map printResultsToScreen
-  printfn "Tests Executed - %i" <| List.length results
+  printfn "----------------------------------"
+  printfn "%i Tests Executed" <| List.length results
   System.Console.ReadLine() |> ignore
   match testExitCodes |> List.exists(fun exitCode -> exitCode = 1) with
   | true -> 1

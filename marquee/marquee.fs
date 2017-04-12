@@ -1,6 +1,13 @@
 module marquee
   open OpenQA.Selenium
 
+  type BrowserDirectoryOption =
+  | CurrentDirectory
+  | SpecificDirectory of string
+
+  type BrowserType =
+    | Chrome of BrowserDirectoryOption
+    | Firefox of BrowserDirectoryOption
   type WaitResult<'T> =
   | WaitSuccessful of 'T
   | WaitFailure of System.Exception
@@ -39,34 +46,30 @@ module marquee
         testContinueFunction lastActivationTime
     testContinueFunction -1000.0
 
-
-  type BrowserType =
-    | Chrome of string
-    | Firefox of string
+  type BrowserConfiguration =
+    {
+      BrowserType : BrowserType
+      ElementTimeout : int
+      AssertionTimeout : int
+    }
 
   type Browser =
     {
-      instance : OpenQA.Selenium.IWebDriver
-      elementTimeout : int
-      assertionTimeout : int
+      Instance : OpenQA.Selenium.IWebDriver
+      ElementTimeout : int
+      AssertionTimeout : int
     }
 
-    member private this.WaitForAssertion assertionFunction =
-      let waitForAssertion timeout assertionFunc =
-        let continueFunction : ContinueFunction<unit> = fun () ->
-          try
-            assertionFunc ()
-            WaitSuccessful ()
-          with
-          | ex -> WaitFailure ex
-        wait timeout continueFunction
-      waitForAssertion this.assertionTimeout assertionFunction
-
-    static member Create (browserType : BrowserType) : Browser =
+    static member Create (configuration : BrowserConfiguration) : Browser =
+      let getBrowserDirectory directoryOption =
+        match directoryOption with
+        | CurrentDirectory -> System.IO.Directory.GetCurrentDirectory()
+        | SpecificDirectory dir -> dir
       let hideCommandPromptWindow = true
       let browserInstance =
-        match browserType with
+        match configuration.BrowserType with
         | Chrome chromeDir ->
+          let chromeDir = getBrowserDirectory chromeDir
           let chromeDriverService _ =
             let service = Chrome.ChromeDriverService.CreateDefaultService(chromeDir)
             service.HideCommandPromptWindow <- hideCommandPromptWindow
@@ -77,17 +80,29 @@ module marquee
           options.AddArgument("test-type") //https://code.google.com/p/chromedriver/issues/detail?id=799
           new OpenQA.Selenium.Chrome.ChromeDriver(chromeDriverService (), options) :> IWebDriver
         | Firefox firefoxDir ->
+          let firefoxDir = getBrowserDirectory firefoxDir
           let options = new OpenQA.Selenium.Firefox.FirefoxOptions()
           options.BrowserExecutableLocation <- firefoxDir
           new OpenQA.Selenium.Firefox.FirefoxDriver(options) :> IWebDriver
       {
-        instance = browserInstance
-        elementTimeout = 5000 
-        assertionTimeout = 5000
+        Instance = browserInstance
+        ElementTimeout = configuration.ElementTimeout 
+        AssertionTimeout = configuration.AssertionTimeout
        }
 
+    member private this.WaitForAssertion assertionFunction =
+      let waitForAssertion timeout assertionFunc =
+        let continueFunction : ContinueFunction<unit> = fun () ->
+          try
+            assertionFunc ()
+            WaitSuccessful ()
+          with
+          | ex -> WaitFailure ex
+        wait timeout continueFunction
+      waitForAssertion this.AssertionTimeout assertionFunction
+
     member this.FindElements cssSelector =
-      let searchContext : ISearchContext = this.instance :> ISearchContext
+      let searchContext : ISearchContext = this.Instance :> ISearchContext
       let findElementsByCssSelector timeout cssSelector (browser : ISearchContext) =
         let continueFunction : ContinueFunction<WebElements> =
           fun _ ->
@@ -99,7 +114,7 @@ module marquee
         let elements =
           wait timeout continueFunction
         elements
-      let elements = findElementsByCssSelector this.elementTimeout cssSelector searchContext
+      let elements = findElementsByCssSelector this.ElementTimeout cssSelector searchContext
       elements
 
     member this.Click cssSelector =
@@ -119,7 +134,7 @@ module marquee
       this.WaitForAssertion assertionFunction
 
     member this.Url (url : string) =
-      this.instance.Navigate().GoToUrl(url)
+      this.Instance.Navigate().GoToUrl(url)
 
     static member private ReadText (element : IWebElement) =
         match element.TagName.ToLower() with
@@ -227,16 +242,16 @@ module marquee
 
     member this.AlertTextEquals text  =
       let assertionFunction = fun () ->
-        let alert = this.instance.SwitchTo().Alert()
+        let alert = this.Instance.SwitchTo().Alert()
         match alert.Text = text with
         | true -> ()
         | false -> raise <| AlertTextDoesNotEqual text
       this.WaitForAssertion assertionFunction
 
     member this.AcceptAlert () =
-      let alert = this.instance.SwitchTo().Alert()
+      let alert = this.Instance.SwitchTo().Alert()
       alert.Accept()
 
     member this.DismissAlert () =
-      let alert = this.instance.SwitchTo().Alert()
+      let alert = this.Instance.SwitchTo().Alert()
       alert.Dismiss()

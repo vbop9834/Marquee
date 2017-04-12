@@ -29,9 +29,9 @@ type private TestWorkerMsgs =
 type private TestWorkerInstance = MailboxProcessor<TestWorkerMsgs>
 
 type private TestWorker =
-  { testWorkerInstance : TestWorkerInstance }
+  { TestWorkerInstance : TestWorkerInstance }
 
-  static member Create browserType =
+  static member Create (browserConfiguration : marquee.BrowserConfiguration) =
     let testWorkerInstance =
       TestWorkerInstance.Start(fun inbox ->
         let rec loop () =
@@ -40,7 +40,7 @@ type private TestWorker =
             match msg with
             | Work ((testDescription, testFunction), reportFunction, replyChannel) ->
               replyChannel.Reply()
-              let browser = browserType |> marquee.Browser.Create
+              let browser = browserConfiguration |> marquee.Browser.Create
               let testResult : TestResult =
                 try
                   browser |> testFunction
@@ -48,7 +48,7 @@ type private TestWorker =
                 with
                 | ex ->
                   TestFailed(ex)
-              browser.instance.Close()
+              browser.Instance.Quit()
               (testDescription,testResult) |> reportFunction 
               return! loop ()
             | EndWorker ->
@@ -56,13 +56,13 @@ type private TestWorker =
           }
         loop ()
       )
-    { testWorkerInstance = testWorkerInstance }
+    { TestWorkerInstance = testWorkerInstance }
 
     member this.Work test reportFunction =
-      (fun r -> Work(test, reportFunction, r)) |> this.testWorkerInstance.PostAndReply
+      (fun r -> Work(test, reportFunction, r)) |> this.TestWorkerInstance.PostAndReply
 
     member this.Die () =
-      EndWorker |> this.testWorkerInstance.Post
+      EndWorker |> this.TestWorkerInstance.Post
 //=========================================================================
 
 //Test Reporter
@@ -75,7 +75,7 @@ type private TestReporterMsgs =
 type private TestReporterInstance = MailboxProcessor<TestReporterMsgs>
 
 type private TestReporter =
-  { testReporterInstance : TestReporterInstance }
+  { TestReporterInstance : TestReporterInstance }
 
   static member Create resultsFunction =
     let stopwatch = System.Diagnostics.Stopwatch.StartNew()
@@ -98,13 +98,13 @@ type private TestReporter =
           }
         loop List.empty
       )
-    { testReporterInstance = reporterInstance }
+    { TestReporterInstance = reporterInstance }
 
     member this.GatherTestResultPackage resultPackage =
-      (fun r -> GatherTestResultPackage(resultPackage, r)) |> this.testReporterInstance.PostAndReply
+      (fun r -> GatherTestResultPackage(resultPackage, r)) |> this.TestReporterInstance.PostAndReply
 
     member this.SendResultsToResultsFunction () =
-      SendResultsToResultsFunction |> this.testReporterInstance.PostAndReply
+      SendResultsToResultsFunction |> this.TestReporterInstance.PostAndReply
 //=========================================================================
 
 //Test Supervisor
@@ -119,7 +119,43 @@ type private TestSupervisorInstance = MailboxProcessor<TestSupervisorMsgs>
 type private TestWorkers = Map<TestWorkerId,TestWorker>
 
 type private TestSupervisor =
-  { testSupervisorInstance : TestSupervisorInstance }
+  { TestSupervisorInstance : TestSupervisorInstance }
+
+  static member Create (testReporter : TestReporter) (browserConfiguration : marquee.BrowserConfiguration) (amountOfBrowsers : AmountOfBrowsers) testQueue =
+    let testWorkers : TestWorkers =
+      let amountOfBrowsers = 
+        match amountOfBrowsers with
+        | MaximumBrowsersPossible -> List.length testQueue
+        | IWantThisManyBrowsers amountOfBrowsers -> amountOfBrowsers
+      [1..amountOfBrowsers] 
+      |> List.map(fun workerId -> (workerId, TestWorker.Create browserConfiguration))
+      |> Map.ofList
+    let testSupervisorInstance = TestSupervisorInstance.Start(fun inbox ->
+      let rec loop (workers : TestWorkers) testQueue (maybeEndOfWorkReplyChannel : AsyncReplyChannel<unit> option) =
+        async {
+          let! msg = inbox.Receive ()
+          match msg with
+          | Report (testWorkerId, testResultPackage, replyChannel) ->
+            replyChannel.Reply()
+            //Report results
+            testReporter.GatherTestResultPackage testResultPackage
+            //Send work to idle worker
+            let testQueue, workers = TestSupervisor.SendTestToWorker inbox maybeEndOfWorkReplyChannel testQueue testWorkerId workers 
+            //Recurse with new testQueue and worker pool
+            return! loop workers testQueue maybeEndOfWorkReplyChannel
+          | RunTests replyChannel ->
+            //Create option replyChannel for closing when all work is done
+            let maybeEndOfWorkReplyChannel = Some replyChannel
+            //Send test to workers
+            let testQueue, workers = TestSupervisor.SendWorkToWorkers inbox maybeEndOfWorkReplyChannel testQueue workers 
+            return! loop workers testQueue maybeEndOfWorkReplyChannel
+          | EndSupervisor ->
+            ()
+        }
+      loop testWorkers testQueue None
+    )
+    { TestSupervisorInstance = testSupervisorInstance }
+
 
   static member SendTestToWorker (inbox : TestSupervisorInstance) (maybeEndOfWorkReplyChannel : AsyncReplyChannel<unit> option) testQueue testWorkerId (workers : TestWorkers) =
     let worker = workers |> Map.find testWorkerId
@@ -158,43 +194,8 @@ type private TestSupervisor =
     let workerIds = workers |> Map.toList |> List.map fst
     sendWork workerIds testQueue workers
 
-  static member Create (testReporter : TestReporter) browserType (amountOfBrowsers : AmountOfBrowsers) testQueue =
-    let testWorkers : TestWorkers =
-      let amountOfBrowsers = 
-        match amountOfBrowsers with
-        | MaximumBrowsersPossible -> List.length testQueue
-        | IWantThisManyBrowsers amountOfBrowsers -> amountOfBrowsers
-      [1..amountOfBrowsers] 
-      |> List.map(fun workerId -> (workerId, TestWorker.Create browserType))
-      |> Map.ofList
-    let testSupervisorInstance = TestSupervisorInstance.Start(fun inbox ->
-      let rec loop (workers : TestWorkers) testQueue (maybeEndOfWorkReplyChannel : AsyncReplyChannel<unit> option) =
-        async {
-          let! msg = inbox.Receive ()
-          match msg with
-          | Report (testWorkerId, testResultPackage, replyChannel) ->
-            replyChannel.Reply()
-            //Report results
-            testReporter.GatherTestResultPackage testResultPackage
-            //Send work to idle worker
-            let testQueue, workers = TestSupervisor.SendTestToWorker inbox maybeEndOfWorkReplyChannel testQueue testWorkerId workers 
-            //Recurse with new testQueue and worker pool
-            return! loop workers testQueue maybeEndOfWorkReplyChannel
-          | RunTests replyChannel ->
-            //Create option replyChannel for closing when all work is done
-            let maybeEndOfWorkReplyChannel = Some replyChannel
-            //Send test to workers
-            let testQueue, workers = TestSupervisor.SendWorkToWorkers inbox maybeEndOfWorkReplyChannel testQueue workers 
-            return! loop workers testQueue maybeEndOfWorkReplyChannel
-          | EndSupervisor ->
-            ()
-        }
-      loop testWorkers testQueue None
-    )
-    { testSupervisorInstance = testSupervisorInstance }
-
   member this.RunTests () =
-    RunTests |> this.testSupervisorInstance.PostAndReply
+    RunTests |> this.TestSupervisorInstance.PostAndReply
 //=========================================================================
 
 //Test Manager
@@ -207,13 +208,22 @@ type private TestManagerMsgs =
 
 type private TestManagerInstance = MailboxProcessor<TestManagerMsgs>
 
-type TestManager =
-  { 
-    mailbox : TestManagerInstance
+type TestManagerConfiguration =
+  {
+    TestResultsFunction : TestResultsFunction
+    AmountOfBrowsers : AmountOfBrowsers
+    BrowserType : marquee.BrowserType
+    ElementTimeout : int
+    AssertionTimeout : int
   }
 
-  static member Create (resultsFunction : TestResultsFunction) amountOfBrowsers (browserType : marquee.BrowserType) =
-    let testReporter = TestReporter.Create resultsFunction
+type TestManager =
+  { 
+    Mailbox : TestManagerInstance
+  }
+
+  static member Create (configuration : TestManagerConfiguration) =
+    let testReporter = TestReporter.Create configuration.TestResultsFunction
     let testManager = 
       TestManagerInstance.Start(fun inbox ->
         let rec loop registeredTests =
@@ -225,7 +235,13 @@ type TestManager =
               replyChannel.Reply ()
               return! loop registeredTests
             | RunTests replyChannel ->
-              let testSupervisor = TestSupervisor.Create testReporter browserType amountOfBrowsers registeredTests 
+              let browserConfiguration : marquee.BrowserConfiguration =
+                {
+                  BrowserType = configuration.BrowserType
+                  ElementTimeout = configuration.ElementTimeout
+                  AssertionTimeout = configuration.AssertionTimeout
+                }
+              let testSupervisor = TestSupervisor.Create testReporter browserConfiguration configuration.AmountOfBrowsers registeredTests 
               testSupervisor.RunTests ()
               replyChannel.Reply ()
               return! loop registeredTests
@@ -237,18 +253,18 @@ type TestManager =
           }
         loop List.empty
       )
-    { mailbox = testManager }
+    { Mailbox = testManager }
 
   member this.Register testDescription testFunction =
     let test = testDescription, testFunction
-    (fun r -> Register(test, r)) |> this.mailbox.PostAndReply
+    (fun r -> Register(test, r)) |> this.Mailbox.PostAndReply
 
   member this.RunTests () =
-   RunTests |> this.mailbox.PostAndReply
+   RunTests |> this.Mailbox.PostAndReply
 
   member this.ReportResults () =
-    ReportResults |> this.mailbox.PostAndReply
+    ReportResults |> this.Mailbox.PostAndReply
 
   member this.EndManager () =
-    EndManager |> this.mailbox.Post
+    EndManager |> this.Mailbox.Post
 //=========================================================================

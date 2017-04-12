@@ -3,8 +3,15 @@ module marquee.tests
 open marquee
 open testManager
 
-let amountOfBrowsers = MaximumBrowsersPossible //other option is the following IWantThisManyBrowsers 3
-let testManager = Chrome __SOURCE_DIRECTORY__ |> TestManager.Create consoleReporter.resultsFunction amountOfBrowsers
+let testManagerConfiguration : TestManagerConfiguration =
+  {
+    TestResultsFunction = consoleReporter.resultsFunction
+    AmountOfBrowsers = MaximumBrowsersPossible
+    BrowserType = Chrome(CurrentDirectory)
+    AssertionTimeout = 5000
+    ElementTimeout = 5000
+  }
+let testManager = testManagerConfiguration |> TestManager.Create
 let (--) testDescription testFunc = testManager.Register testDescription testFunc
 
 //Helpers

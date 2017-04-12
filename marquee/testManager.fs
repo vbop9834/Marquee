@@ -9,9 +9,10 @@ type TestResult =
 | TestPassed
 type TestResultPackage = TestDescription*TestResult
 type TestResultPackages = TestResultPackage list
+type ExecutionTime = System.TimeSpan
 
 type ReportFunction = TestResultPackage -> unit
-type TestResultsFunction = TestResultPackages -> int
+type TestResultsFunction = ExecutionTime -> TestResultPackages -> int
 
 //Test Worker
 //=========================================================================
@@ -73,6 +74,7 @@ type TestReporter =
   { testReporterInstance : TestReporterInstance }
 
   static member Create resultsFunction =
+    let stopwatch = System.Diagnostics.Stopwatch.StartNew()
     let reporterInstance =
       TestReporterInstance.Start(fun inbox ->
         let rec loop (resultPackages : TestResultPackages) =
@@ -84,7 +86,8 @@ type TestReporter =
               replyChannel.Reply ()
               return! loop resultPackages
             | SendResultsToResultsFunction replyChannel ->
-              let exitCode = resultPackages |> resultsFunction
+              let testRunTime = stopwatch.Elapsed
+              let exitCode = resultPackages |> resultsFunction testRunTime
               replyChannel.Reply exitCode
               return! loop List.empty
             | EndReporter -> ()

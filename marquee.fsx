@@ -4,12 +4,20 @@
 
 #r "WebDriver.dll"
 #load "marquee.fs"
+#load "testManager.fs"
 
 open marquee
-let browser = Chrome __SOURCE_DIRECTORY__ |> Browser.Create
-browser.Url "http://lefthandedgoat.github.io/canopy/testpages/"
-"#button_clicked" |> browser.ElementTextEquals "button not clicked"
-browser.Click "#button"
-"#button_clicked" |> browser.ElementTextEquals "button clicked"
-browser.Displayed "#welcome"
-"#welcome" |> browser.ElementTextEquals "Welcome"
+open testManager
+
+let testManager = Chrome __SOURCE_DIRECTORY__ |> TestManager.Create
+let (--) testDescription testFunc = testManager.Register (testDescription, testFunc)
+
+"Button should click" -- fun browser ->
+  browser.Url "http://lefthandedgoat.github.io/canopy/testpages/"
+  "#button_clicked" |> browser.ElementTextEquals "button not clicked"
+  browser.Click "#button"
+  "#button_clicked" |> browser.ElementTextEquals "button clicked"
+  browser.Displayed "#welcome"
+  "#welcome" |> browser.ElementTextEquals "Welcome1"
+
+testManager.RunTests ()

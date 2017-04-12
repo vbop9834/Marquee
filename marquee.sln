@@ -5,6 +5,8 @@ VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "marquee", "marquee\marquee.fsproj", "{8FA1A166-BB93-4D40-AD80-41242B783F18}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "marquee.tests", "marquee.tests\marquee.tests.fsproj", "{F1492AC1-F102-4FCA-9281-EDFC52D31D7E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{8FA1A166-BB93-4D40-AD80-41242B783F18}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8FA1A166-BB93-4D40-AD80-41242B783F18}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8FA1A166-BB93-4D40-AD80-41242B783F18}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F1492AC1-F102-4FCA-9281-EDFC52D31D7E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F1492AC1-F102-4FCA-9281-EDFC52D31D7E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F1492AC1-F102-4FCA-9281-EDFC52D31D7E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F1492AC1-F102-4FCA-9281-EDFC52D31D7E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -5,11 +5,16 @@ type TestFunction = marquee.Browser -> unit
 type Test = TestDescription*TestFunction
 
 type TestResult =
-| TestFailed of TestDescription*System.Exception
+| TestFailed of System.Exception
 | TestPassed
+type TestResultPackage = TestDescription*TestResult
+type TestResultPackages = TestResultPackage list
 
-type ReportFunction = TestResult -> unit
+type ReportFunction = TestResultPackage -> unit
+type TestResultsFunction = TestResultPackages -> int
 
+//Test Worker
+//=========================================================================
 type TestWorkerId = int
 
 type TestWorkerMsgs =
@@ -37,9 +42,9 @@ type TestWorker =
                   TestPassed
                 with
                 | ex ->
-                  TestFailed(testDescription, ex)
+                  TestFailed(ex)
               browser.instance.Close()
-              testResult |> reportFunction 
+              (testDescription,testResult) |> reportFunction 
               return! loop ()
             | EndWorker ->
               ()
@@ -53,9 +58,52 @@ type TestWorker =
 
     member this.Die () =
       EndWorker |> this.testWorkerInstance.Post
+//=========================================================================
 
+//Test Reporter
+//=========================================================================
+type TestReporterMsgs =
+| GatherTestResultPackage of TestResultPackage*AsyncReplyChannel<unit>
+| SendResultsToResultsFunction of AsyncReplyChannel<int>
+| EndReporter
+
+type TestReporterInstance = MailboxProcessor<TestReporterMsgs>
+
+type TestReporter =
+  { testReporterInstance : TestReporterInstance }
+
+  static member Create resultsFunction =
+    let reporterInstance =
+      TestReporterInstance.Start(fun inbox ->
+        let rec loop (resultPackages : TestResultPackages) =
+          async {
+            let! msg = inbox.Receive ()
+            match msg with
+            | GatherTestResultPackage (resultPackage, replyChannel) ->
+              let resultPackages = List.append resultPackages [resultPackage]
+              replyChannel.Reply ()
+              return! loop resultPackages
+            | SendResultsToResultsFunction replyChannel ->
+              let exitCode = resultPackages |> resultsFunction
+              replyChannel.Reply exitCode
+              return! loop List.empty
+            | EndReporter -> ()
+          }
+        loop List.empty
+      )
+    { testReporterInstance = reporterInstance }
+
+    member this.GatherTestResultPackage resultPackage =
+      (fun r -> GatherTestResultPackage(resultPackage, r)) |> this.testReporterInstance.PostAndReply
+
+    member this.SendResultsToResultsFunction () =
+      SendResultsToResultsFunction |> this.testReporterInstance.PostAndReply
+//=========================================================================
+
+//Test Supervisor
+//=========================================================================
 type TestSupervisorMsgs =
-| Report of TestWorkerId*TestResult*AsyncReplyChannel<unit>
+| Report of TestWorkerId*TestResultPackage*AsyncReplyChannel<unit>
 | RunTests of AsyncReplyChannel<unit>
 | EndSupervisor
 
@@ -70,8 +118,8 @@ type TestSupervisor =
     let worker = workers |> Map.find testWorkerId
     match testQueue with
     | test :: testQueue ->
-      let reportFunction : ReportFunction = fun testResult ->
-        (fun r -> Report(testWorkerId, testResult, r)) |> inbox.PostAndReply
+      let reportFunction : ReportFunction = fun testResultPackage ->
+        (fun r -> Report(testWorkerId, testResultPackage, r)) |> inbox.PostAndReply
       worker.Work test reportFunction
       (testQueue, workers)
     | [] ->
@@ -103,7 +151,7 @@ type TestSupervisor =
     let workerIds = workers |> Map.toList |> List.map fst
     sendWork workerIds testQueue workers
 
-  static member Create browserType amountOfBrowsers testQueue =
+  static member Create (testReporter : TestReporter) browserType amountOfBrowsers testQueue =
     let testWorkers : TestWorkers =
       [1..amountOfBrowsers] 
       |> List.map(fun workerId -> (workerId, TestWorker.Create browserType))
@@ -113,16 +161,13 @@ type TestSupervisor =
         async {
           let! msg = inbox.Receive ()
           match msg with
-          | Report (testWorkerId, testResult, replyChannel) ->
+          | Report (testWorkerId, testResultPackage, replyChannel) ->
             replyChannel.Reply()
+            //Report results
+            testReporter.GatherTestResultPackage testResultPackage
+            //Send work to idle worker
             let testQueue, workers = TestSupervisor.SendTestToWorker inbox maybeEndOfWorkReplyChannel testQueue testWorkerId workers 
-             
-            //TODO make a reporter instance
-            match testResult with
-            | TestPassed -> ()
-            | TestFailed (testDescription, testException) ->
-              printfn "Failure - %s" testDescription
-              printfn "Exception %s" testException.StackTrace
+            //Recurse with new testQueue and worker pool
             return! loop workers testQueue maybeEndOfWorkReplyChannel
           | RunTests replyChannel ->
             //Create option replyChannel for closing when all work is done
@@ -139,10 +184,14 @@ type TestSupervisor =
 
   member this.RunTests () =
     RunTests |> this.testSupervisorInstance.PostAndReply
+//=========================================================================
 
+//Test Manager
+//=========================================================================
 type TestManagerMsgs =
 | Register of Test*AsyncReplyChannel<unit>
 | RunTests of AsyncReplyChannel<unit>
+| ReportResults of AsyncReplyChannel<int>
 | EndManager
 
 type TestManagerInstance = MailboxProcessor<TestManagerMsgs>
@@ -152,7 +201,8 @@ type TestManager =
     mailbox : TestManagerInstance
   }
 
-  static member Create amountOfBrowsers (browserType : marquee.BrowserType) =
+  static member Create resultsFunction amountOfBrowsers (browserType : marquee.BrowserType) =
+    let testReporter = TestReporter.Create resultsFunction
     let testManager = 
       TestManagerInstance.Start(fun inbox ->
         let rec loop registeredTests =
@@ -164,9 +214,13 @@ type TestManager =
               replyChannel.Reply ()
               return! loop registeredTests
             | RunTests replyChannel ->
-              let testSupervisor = TestSupervisor.Create browserType amountOfBrowsers registeredTests 
+              let testSupervisor = TestSupervisor.Create testReporter browserType amountOfBrowsers registeredTests 
               testSupervisor.RunTests ()
               replyChannel.Reply ()
+              return! loop registeredTests
+            | ReportResults replyChannel ->
+              let exitCode = testReporter.SendResultsToResultsFunction ()
+              replyChannel.Reply exitCode
               return! loop registeredTests
             | EndManager -> ()
           }
@@ -180,5 +234,9 @@ type TestManager =
   member this.RunTests () =
    RunTests |> this.mailbox.PostAndReply
 
+  member this.ReportResults () =
+    ReportResults |> this.mailbox.PostAndReply
+
   member this.EndManager () =
     EndManager |> this.mailbox.Post
+//=========================================================================

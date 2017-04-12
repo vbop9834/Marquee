@@ -1,6 +1,7 @@
 FRAMEWORK: NET45
 NUGET
   remote: https://www.nuget.org/api/v2
+  specs:
     FAKE (4.57.4)
     FSharp.Core (4.0.0.1)
     Selenium.WebDriver (3.3)

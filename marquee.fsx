@@ -9,15 +9,28 @@
 open marquee
 open testManager
 
-let testManager = Chrome __SOURCE_DIRECTORY__ |> TestManager.Create
+let amountOfBrowsers = 5
+let testManager = Chrome __SOURCE_DIRECTORY__ |> TestManager.Create amountOfBrowsers
 let (--) testDescription testFunc = testManager.Register (testDescription, testFunc)
 
-"Button should click" -- fun browser ->
-  browser.Url "http://lefthandedgoat.github.io/canopy/testpages/"
-  "#button_clicked" |> browser.ElementTextEquals "button not clicked"
-  browser.Click "#button"
-  "#button_clicked" |> browser.ElementTextEquals "button clicked"
-  browser.Displayed "#welcome"
-  "#welcome" |> browser.ElementTextEquals "Welcome1"
+let registerATest () =
+  "Button should click" -- fun browser ->
+    browser.Url "http://lefthandedgoat.github.io/canopy/testpages/"
+    "#button_clicked" |> browser.ElementTextEquals "button not clicked"
+    browser.Click "#button"
+    "#button_clicked" |> browser.ElementTextEquals "button clicked"
+    browser.Displayed "#welcome"
+    "#welcome" |> browser.ElementTextEquals "Welcome"
+
+registerATest ()
+registerATest ()
+registerATest ()
+registerATest ()
+registerATest ()
+registerATest ()
+registerATest ()
+registerATest ()
+registerATest ()
 
 testManager.RunTests ()
+testManager.EndManager ()

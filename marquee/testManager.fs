@@ -14,17 +14,21 @@ type ExecutionTime = System.TimeSpan
 type ReportFunction = TestResultPackage -> unit
 type TestResultsFunction = ExecutionTime -> TestResultPackages -> int
 
+type AmountOfBrowsers =
+| MaximumBrowsersPossible
+| IWantThisManyBrowsers of int
+
 //Test Worker
 //=========================================================================
-type TestWorkerId = int
+type private TestWorkerId = int
 
-type TestWorkerMsgs =
+type private TestWorkerMsgs =
 | Work of Test*ReportFunction*AsyncReplyChannel<unit>
 | EndWorker
 
-type TestWorkerInstance = MailboxProcessor<TestWorkerMsgs>
+type private TestWorkerInstance = MailboxProcessor<TestWorkerMsgs>
 
-type TestWorker =
+type private TestWorker =
   { testWorkerInstance : TestWorkerInstance }
 
   static member Create browserType =
@@ -63,14 +67,14 @@ type TestWorker =
 
 //Test Reporter
 //=========================================================================
-type TestReporterMsgs =
+type private TestReporterMsgs =
 | GatherTestResultPackage of TestResultPackage*AsyncReplyChannel<unit>
 | SendResultsToResultsFunction of AsyncReplyChannel<int>
 | EndReporter
 
-type TestReporterInstance = MailboxProcessor<TestReporterMsgs>
+type private TestReporterInstance = MailboxProcessor<TestReporterMsgs>
 
-type TestReporter =
+type private TestReporter =
   { testReporterInstance : TestReporterInstance }
 
   static member Create resultsFunction =
@@ -105,16 +109,16 @@ type TestReporter =
 
 //Test Supervisor
 //=========================================================================
-type TestSupervisorMsgs =
+type private TestSupervisorMsgs =
 | Report of TestWorkerId*TestResultPackage*AsyncReplyChannel<unit>
 | RunTests of AsyncReplyChannel<unit>
 | EndSupervisor
 
-type TestSupervisorInstance = MailboxProcessor<TestSupervisorMsgs>
+type private TestSupervisorInstance = MailboxProcessor<TestSupervisorMsgs>
 
 type private TestWorkers = Map<TestWorkerId,TestWorker>
 
-type TestSupervisor =
+type private TestSupervisor =
   { testSupervisorInstance : TestSupervisorInstance }
 
   static member SendTestToWorker (inbox : TestSupervisorInstance) (maybeEndOfWorkReplyChannel : AsyncReplyChannel<unit> option) testQueue testWorkerId (workers : TestWorkers) =
@@ -154,8 +158,12 @@ type TestSupervisor =
     let workerIds = workers |> Map.toList |> List.map fst
     sendWork workerIds testQueue workers
 
-  static member Create (testReporter : TestReporter) browserType amountOfBrowsers testQueue =
+  static member Create (testReporter : TestReporter) browserType (amountOfBrowsers : AmountOfBrowsers) testQueue =
     let testWorkers : TestWorkers =
+      let amountOfBrowsers = 
+        match amountOfBrowsers with
+        | MaximumBrowsersPossible -> List.length testQueue
+        | IWantThisManyBrowsers amountOfBrowsers -> amountOfBrowsers
       [1..amountOfBrowsers] 
       |> List.map(fun workerId -> (workerId, TestWorker.Create browserType))
       |> Map.ofList
@@ -191,13 +199,13 @@ type TestSupervisor =
 
 //Test Manager
 //=========================================================================
-type TestManagerMsgs =
+type private TestManagerMsgs =
 | Register of Test*AsyncReplyChannel<unit>
 | RunTests of AsyncReplyChannel<unit>
 | ReportResults of AsyncReplyChannel<int>
 | EndManager
 
-type TestManagerInstance = MailboxProcessor<TestManagerMsgs>
+type private TestManagerInstance = MailboxProcessor<TestManagerMsgs>
 
 type TestManager =
   { 
@@ -231,7 +239,8 @@ type TestManager =
       )
     { mailbox = testManager }
 
-  member this.Register test =
+  member this.Register testDescription testFunction =
+    let test = testDescription, testFunction
     (fun r -> Register(test, r)) |> this.mailbox.PostAndReply
 
   member this.RunTests () =

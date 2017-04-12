@@ -3,9 +3,9 @@ module marquee.tests
 open marquee
 open testManager
 
-let amountOfBrowsers = 10
+let amountOfBrowsers = MaximumBrowsersPossible //other option is the following IWantThisManyBrowsers 3
 let testManager = Chrome __SOURCE_DIRECTORY__ |> TestManager.Create consoleReporter.resultsFunction amountOfBrowsers
-let (--) testDescription testFunc = testManager.Register (testDescription, testFunc)
+let (--) testDescription testFunc = testManager.Register testDescription testFunc
 
 //Helpers
 let testPageUrl = "http://lefthandedgoat.github.io/canopy/testpages"

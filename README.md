@@ -1,12 +1,9 @@
-#I __SOURCE_DIRECTORY__
-#I "./packages/Selenium.WebDriver/lib/net40"
-#I "./marquee"
+# marquee
+## What is marquee?
+marquee is an open source, Selenium based, UI Automation testing framework. Inspired by [lefthandedgoat's](https://github.com/lefthandedgoat) excellent, C# compatible library [canopy](https://github.com/lefthandedgoat/canopy).
 
-#r "WebDriver.dll"
-#load "marquee.fs"
-#load "testManager.fs"
-#load "consoleReporter.fs"
-
+Below is a marquee test suite program
+```
 open marquee
 //This loads the Browser type
 
@@ -57,3 +54,8 @@ let exitCode = testManager.ReportResults ()
 testManager.EndManager ()
 //exit the program and return the exitCode from the test results
 exit exitCode
+```
+
+## LICENSE
+[MIT](/LICENSE)
+

@@ -210,7 +210,7 @@ type TestManager =
             let! msg = inbox.Receive()
             match msg with
             | Register (test, replyChannel) ->
-              let registeredTests = registeredTests |> List.append [test] 
+              let registeredTests = List.append registeredTests [test] 
               replyChannel.Reply ()
               return! loop registeredTests
             | RunTests replyChannel ->

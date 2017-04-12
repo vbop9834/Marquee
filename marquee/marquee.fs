@@ -17,6 +17,7 @@ module marquee
   exception WebElementIsChecked of IWebElement
   exception NoOptionInSelectThatMatchesText of string
   exception OptionIsNotSelected of string
+  exception AlertTextDoesNotEqual of string
 
   let private wait (timeout : int) (continueFunction : ContinueFunction<'T>) =
     let stopwatch = System.Diagnostics.Stopwatch.StartNew()
@@ -197,3 +198,17 @@ module marquee
         match element.Selected with
         | true -> ()
         | false -> raise <| OptionIsNotSelected option
+
+    member this.AlertTextEquals text  =
+      let alert = this.instance.SwitchTo().Alert()
+      match alert.Text with
+      | text -> ()
+      | _ -> raise <| AlertTextDoesNotEqual text
+
+    member this.AcceptAlert () =
+      let alert = this.instance.SwitchTo().Alert()
+      alert.Accept()
+
+    member this.DismissAlert () =
+      let alert = this.instance.SwitchTo().Alert()
+      alert.Dismiss()

@@ -5,6 +5,7 @@ open testManager
 
 let amountOfBrowsers = 10
 let resultsFunction = fun results ->
+  printfn "Test Results"
   let printResultsToScreen (testDescription, testResult) =
     printfn "%s" testDescription
     match testResult with
@@ -28,7 +29,8 @@ let testManager = Chrome __SOURCE_DIRECTORY__ |> TestManager.Create resultsFunct
 let (--) testDescription testFunc = testManager.Register (testDescription, testFunc)
 
 //Helpers
-let testPageUrl = "http://lefthandedgoat.github.io/canopy/testpages/"
+let testPageUrl = "http://lefthandedgoat.github.io/canopy/testpages"
+let alertTestPageUrl = sprintf "%s/alert" testPageUrl
 let buttonClickedSelector = "#button_clicked"
 let buttonSelector = "#button"
 let welcomeSelector = "#welcome"
@@ -40,14 +42,27 @@ let checkboxSelector = "#checkbox"
 let radioOneSelector = "#radio1"
 let radioTwoSelector = "#radio2"
 let statesListSelector = "#states"
+let hyperlinkSelector = "#hyperlink"
+let hyperlinkClickedSelector = "#link_clicked"
+let alertSelector = "#alert"
+let confirmationAlertSelector = "#confirmation_test"
 
-"Navigating to the test page and clicking a button should change the button text" -- fun browser ->
+"Should be able to check if an element is displayed and assert the text" -- fun browser ->
+  browser.Url testPageUrl
+  browser.Displayed welcomeSelector
+  welcomeSelector |> browser.ElementTextEquals "Welcome"
+
+"Should be able to click a button which should change the button text" -- fun browser ->
   browser.Url testPageUrl
   buttonClickedSelector |> browser.ElementTextEquals "button not clicked"
   browser.Click buttonSelector
   buttonClickedSelector |> browser.ElementTextEquals "button clicked"
-  browser.Displayed welcomeSelector
-  welcomeSelector |> browser.ElementTextEquals "Welcome"
+
+"Should be able to click a link which should change the link text" -- fun browser ->
+  browser.Url testPageUrl
+  hyperlinkClickedSelector |> browser.ElementTextEquals "link not clicked"
+  browser.Click hyperlinkSelector
+  hyperlinkClickedSelector |> browser.ElementTextEquals "link clicked"
 
 "On the test page, there should be a first and last name" -- fun browser ->
   browser.Url testPageUrl
@@ -116,6 +131,18 @@ let statesListSelector = "#states"
   statesListSelector |> browser.IsOptionSelected "Select"
   statesListSelector |> browser.SetSelectOption "Kingman Reef"
   statesListSelector |> browser.IsOptionSelected "Kingman Reef"
+
+"Should be able to dismiss an alert" -- fun browser ->
+  browser.Url testPageUrl
+  browser.Click alertSelector
+  browser.AlertTextEquals "test!"
+  browser.DismissAlert()
+
+"Should be able to accept an alert" -- fun browser ->
+  browser.Url alertTestPageUrl
+  browser.Click confirmationAlertSelector
+  browser.AlertTextEquals "Confirmation Test"
+  browser.AcceptAlert()
 
 testManager.RunTests ()
 let exitCode = testManager.ReportResults ()

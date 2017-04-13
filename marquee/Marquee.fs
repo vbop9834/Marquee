@@ -92,6 +92,9 @@ module Marquee
         AssertionTimeout = configuration.AssertionTimeout
        }
 
+    member this.Quit () =
+      this.Instance.Quit()
+
     member private this.WaitForAssertion assertionFunction =
       let waitForAssertion timeout assertionFunc =
         let continueFunction : ContinueFunction<unit> = fun () ->

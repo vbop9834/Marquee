@@ -49,8 +49,12 @@ Currently supported browsers are
 let chromeBrowser = Chrome(CurrentDirectory)
 let firefoxBrowser = SpecificDirectory __SOURCE_DIRECTORY__ |> Firefox
 
+(**
+  To start a browser define a BrowserConfiguration record and call the Browser.Create function
+  This is normally handled by the Test Manager.
+*)
 let browserConfiguration : BrowserConfiguration = {
-  BrowserType = chromeBrowser
+  BrowserType = firefoxBrowser
   AssertionTimeout = 5000
   ElementTimeout = 5000
 }

@@ -48,7 +48,7 @@ type private TestWorker =
                 with
                 | ex ->
                   TestFailed(ex)
-              browser.Instance.Quit()
+              browser.Quit()
               (testDescription,testResult) |> reportFunction 
               return! loop ()
             | EndWorker ->

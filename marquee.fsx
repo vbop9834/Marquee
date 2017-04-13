@@ -1,7 +1,7 @@
 (**
 # marquee test suite
 The marquee test suite is broken down into the following components.
-- open marquee and testManager dependencies
+- open Marquee and TestManager dependencies
 - specify the maximum amount of browsers that are able to run concurrently
 - specify the function for reporting test results
 - create the test manager
@@ -16,19 +16,19 @@ The marquee test suite is broken down into the following components.
 #I "./marquee"
 
 #r "WebDriver.dll"
-#load "marquee.fs"
-#load "testManager.fs"
-#load "consoleReporter.fs"
+#load "Marquee.fs"
+#load "TestManager.fs"
+#load "ConsoleReporter.fs"
 
 (**
 ## Dependencies
-The marquee module loads the crucial BrowserType for specifying the Browser
+The Marquee module loads the crucial BrowserType for specifying the Browser
 *)
-open marquee
+open Marquee
 
-//The testManager module loads test registration and concurrent execution types
+//The TestManager module loads test registration and concurrent execution types
 //As well as the TestResultsFunction for handling test results
-open testManager
+open TestManager
 
 (**
 ## Configurations
@@ -49,15 +49,22 @@ Currently supported browsers are
 let chromeBrowser = Chrome(CurrentDirectory)
 let firefoxBrowser = SpecificDirectory __SOURCE_DIRECTORY__ |> Firefox
 
+let browserConfiguration : BrowserConfiguration = {
+  BrowserType = chromeBrowser
+  AssertionTimeout = 5000
+  ElementTimeout = 5000
+}
+let browser = browserConfiguration |> Browser.Create
+
 (**
-### TestResultsFunction 
+### TestResultsFunction
 The TestResultsFunction is used for configuring how test results are reported or saved
 
 consoleReporter is a module provided by marquee for reporting via the console
 *)
-let testResultsFunction = consoleReporter.resultsFunction
+let testResultsFunction = ConsoleReporter.resultsFunction
 
-(** 
+(**
 ## TestManager
 A TestManager handles test registration, test execution, and test results
 

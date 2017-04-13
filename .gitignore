@@ -392,6 +392,3 @@ paket-files/
 .idea/
 *.sln.iml
 temp
-
-chromedriver
-geckodriver

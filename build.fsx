@@ -33,10 +33,20 @@ Target "Deploy" (fun _ ->
     |> Zip buildDir (deployDir + "ApplicationName." + version + ".zip")
 )
 
+Target "Test" (fun _ ->
+               let result =
+                 ExecProcess (fun info ->
+                              info.FileName <- "marquee.tests.exe"
+                              info.WorkingDirectory <- buildDir
+                              ) (System.TimeSpan.FromMinutes 5.0)
+               if result <> 0 then failwith "Marquee tests failed"
+)
+
 // Build order
 "Clean"
   ==> "Build"
+  ==> "Test"
   ==> "Deploy"
 
 // start build
-RunTargetOrDefault "Build"
+RunTargetOrDefault "Test"

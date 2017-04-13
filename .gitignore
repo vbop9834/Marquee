@@ -392,3 +392,5 @@ paket-files/
 .idea/
 *.sln.iml
 temp
+
+docs/output

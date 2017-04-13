@@ -50,6 +50,7 @@ let bin        = __SOURCE_DIRECTORY__ @@ "./../build"
 let content    = __SOURCE_DIRECTORY__ @@ "./content"
 let output     = __SOURCE_DIRECTORY__ @@ "./output"
 let files      = __SOURCE_DIRECTORY__ @@ "./files"
+let marqueeExample = __SOURCE_DIRECTORY__ @@ "../marquee.fsx"
 let templates  = __SOURCE_DIRECTORY__ @@ "templates"
 let formatting = __SOURCE_DIRECTORY__ @@ "../packages/FSharp.Formatting/"
 let docTemplate = formatting @@ "templates/docpage.cshtml"
@@ -63,6 +64,8 @@ let layoutRoots =
 // Copy static files and CSS + JS from F# Formatting
 let copyFiles () =
   CopyRecursive files output true |> Log "Copying file: "
+  let marqueeOutput = content @@ "/marquee_example.fsx" 
+  CopyFile marqueeOutput marqueeExample
   ensureDirectory (output @@ "content")
 
 // Build API reference from XML comments

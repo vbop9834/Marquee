@@ -1,6 +1,14 @@
-framework: net45
-source https://www.nuget.org/api/v2
-nuget FAKE
+framework: net40
+source https://nuget.org/api/v2
+
 nuget FSharp.Core >= 4.0.0 lowest_matching: true
 nuget Selenium.WebDriver
-nuget FSharp.Formatting
+
+group Build
+  source https://nuget.org/api/v2
+  
+  nuget SourceLink.Fake
+  nuget FAKE
+  nuget FSharp.Formatting
+
+  github fsharp/FAKE modules/Octokit/Octokit.fsx

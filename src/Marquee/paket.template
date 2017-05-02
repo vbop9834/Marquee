@@ -1,0 +1,25 @@
+type project
+title
+    Marquee
+owners
+    Jeremy Bellows
+authors 
+    Jeremy Bellows
+projectUrl
+    https://github.com/JeremyBellows/marquee
+iconUrl
+    https://raw.githubusercontent.com/JeremyBellows/Marquee/master/docs/files/img/logo.png
+licenseUrl
+    https://github.com/JeremyBellows/marquee/Jeremy Bellows/Marquee/blob/master/LICENSE.txt
+requireLicenseAcceptance
+    false
+copyright
+    Copyright 2017
+tags
+    Selenium UIAutomation Automation Testing Test Tools F# Functional Concurrent
+summary
+    An open source UI Automation library using Selenium
+description
+    Marquee is an open source, Selenium based, UI Automation library written in F#.
+
+

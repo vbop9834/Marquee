@@ -3,7 +3,7 @@ Marquee is an open source, Selenium based, UI Automation library. Inspired by [l
 
 ## Getting Started
 Documentation is coming soon.
-Check out the [marquee.fsx](/marquee.fsx) script for comments on functionality.
+Check out the [Marquee.fsx](/src/Marquee/Marquee.fsx) script for comments on functionality.
 
 ## LICENSE
 [MIT](/LICENSE)

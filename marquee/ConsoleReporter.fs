@@ -1,13 +1,20 @@
 module ConsoleReporter
   open TestManager
 
+  let private writeLine (text: string) =
+    System.Console.WriteLine text
+
+  let private resetConsoleColor () = System.Console.ResetColor()
+  let private setConsoleColor color =
+    resetConsoleColor ()
+    System.Console.ForegroundColor <- color
+
+  let infoFunction : InfoFunction = fun info -> 
+    setConsoleColor System.ConsoleColor.DarkGray
+    writeLine <| sprintf "INFO - %s" info
+    resetConsoleColor ()
 
   let resultsFunction : TestResultsFunction = fun executionTime results ->
-    let writeLine (text : string) = System.Console.WriteLine text
-    let resetConsoleColor () = System.Console.ResetColor()
-    let setConsoleColor color =
-      resetConsoleColor ()
-      System.Console.ForegroundColor <- color
     writeLine "Test Results"
     writeLine "----------------------------------"
     let printResultsToScreen (testDescription, testResult) =
@@ -32,7 +39,7 @@ module ConsoleReporter
       results
       |> List.map printResultsToScreen
     writeLine "----------------------------------"
-    writeLine <| sprintf "%i Tests Executed in %f seconds" numberOfTests executionTime.TotalSeconds
+    writeLine <| sprintf "%i Tests executed in %f seconds" numberOfTests executionTime.TotalSeconds
     setConsoleColor System.ConsoleColor.Green
     writeLine <| sprintf "%i Passed" numberOfPassedTests
     setConsoleColor System.ConsoleColor.Red

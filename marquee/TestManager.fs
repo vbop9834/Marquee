@@ -13,6 +13,7 @@ type ExecutionTime = System.TimeSpan
 
 type ReportFunction = TestResultPackage -> unit
 type TestResultsFunction = ExecutionTime -> TestResultPackages -> int
+type InfoFunction = string -> unit
 
 type AmountOfBrowsers =
 | MaximumBrowsersPossible
@@ -210,6 +211,7 @@ type private TestManagerInstance = MailboxProcessor<TestManagerMsgs>
 
 type TestManagerConfiguration =
   {
+    InfoFunction : InfoFunction
     TestResultsFunction : TestResultsFunction
     AmountOfBrowsers : AmountOfBrowsers
     BrowserType : Marquee.BrowserType
@@ -235,6 +237,7 @@ type TestManager =
               replyChannel.Reply ()
               return! loop registeredTests
             | RunTests replyChannel ->
+              "Starting Tests" |> configuration.InfoFunction
               let browserConfiguration : Marquee.BrowserConfiguration =
                 {
                   BrowserType = configuration.BrowserType
@@ -246,7 +249,9 @@ type TestManager =
               replyChannel.Reply ()
               return! loop registeredTests
             | ReportResults replyChannel ->
+              "Reporting Results" |> configuration.InfoFunction
               let exitCode = testReporter.SendResultsToResultsFunction ()
+              sprintf "Exiting with exit code %i" exitCode |> configuration.InfoFunction
               replyChannel.Reply exitCode
               return! loop registeredTests
             | EndManager -> ()

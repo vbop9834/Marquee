@@ -5,6 +5,7 @@ open TestManager
 
 let testManagerConfiguration : TestManagerConfiguration =
   {
+    InfoFunction = ConsoleReporter.infoFunction
     TestResultsFunction = ConsoleReporter.resultsFunction
     AmountOfBrowsers = IWantThisManyBrowsers 5
     BrowserType = Chrome(CurrentDirectory)

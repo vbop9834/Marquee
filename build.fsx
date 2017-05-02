@@ -5,8 +5,8 @@ open Fake
 open Fake.Git
 
 // Directories
-let buildDir  = "./build/"
-let deployDir = "./deploy/"
+let buildDir  = sprintf "%s/build/" __SOURCE_DIRECTORY__
+let deployDir = sprintf "%s/deploy/" __SOURCE_DIRECTORY__
 let docsDir = sprintf "%s/docs" __SOURCE_DIRECTORY__
 let docsOutputDir = sprintf "%s/output" docsDir
 
@@ -95,7 +95,7 @@ Target "Deploy" (fun _ ->
 Target "Test" (fun _ ->
                let result =
                  ExecProcess (fun info ->
-                              info.FileName <- "marquee.tests.exe"
+                              info.FileName <- buildDir @@ "marquee.tests.exe"
                               info.WorkingDirectory <- buildDir
                               ) (System.TimeSpan.FromMinutes 5.0)
                if result <> 0 then failwith "Marquee tests failed"

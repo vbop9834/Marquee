@@ -81,12 +81,12 @@
   <Choose>
     <When Condition="$(TargetFrameworkIdentifier) == '.NETFramework' And $(TargetFrameworkVersion) == 'v4.5'">
       <ItemGroup>
-        <Reference Include="System.Drawing">
-          <Paket>True</Paket>
-        </Reference>
         <Reference Include="WebDriver">
           <HintPath>..\packages\Selenium.WebDriver\lib\net40\WebDriver.dll</HintPath>
           <Private>True</Private>
+          <Paket>True</Paket>
+        </Reference>
+        <Reference Include="System.Drawing">
           <Paket>True</Paket>
         </Reference>
       </ItemGroup>

@@ -7,7 +7,7 @@ let testManagerConfiguration : TestManagerConfiguration =
   {
     TestResultsFunction = ConsoleReporter.resultsFunction
     AmountOfBrowsers = IWantThisManyBrowsers 5
-    BrowserType = PhantomJs(CurrentDirectory)
+    BrowserType = Chrome(CurrentDirectory)
     AssertionTimeout = 5000
     ElementTimeout = 5000
   }

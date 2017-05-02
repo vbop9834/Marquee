@@ -4,8 +4,10 @@ module ConsoleReporter
 
   let resultsFunction : TestResultsFunction = fun executionTime results ->
     let writeLine (text : string) = System.Console.WriteLine text
-    let setConsoleColor color = System.Console.ForegroundColor <- color
     let resetConsoleColor () = System.Console.ResetColor()
+    let setConsoleColor color =
+      resetConsoleColor ()
+      System.Console.ForegroundColor <- color
     writeLine "Test Results"
     writeLine "----------------------------------"
     let printResultsToScreen (testDescription, testResult) =
@@ -35,6 +37,7 @@ module ConsoleReporter
     writeLine <| sprintf "%i Passed" numberOfPassedTests
     setConsoleColor System.ConsoleColor.Red
     writeLine <| sprintf "%i Failed" numberOfFailedTests
+    resetConsoleColor ()
     match testExitCodes |> List.exists(fun exitCode -> exitCode = 1) with
     | true -> 1
     | false -> 0

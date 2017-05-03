@@ -21,16 +21,16 @@ module Marquee
   type ContinueFunction<'T> = unit -> WaitResult<'T>
   type WebElements = IWebElement array
 
-  exception UnableToFindElementsWithSelector of string
-  exception NoWebElementsDisplayed of string
-  exception WebElementsDoNotMatchSuppliedText of string
-  exception WebElementIsReadOnly of IWebElement
-  exception WebElementSelectDoesNotContainText of string
-  exception WebElementIsNotChecked of IWebElement
-  exception WebElementIsChecked of IWebElement
-  exception NoOptionInSelectThatMatchesText of string
-  exception OptionIsNotSelected of string
-  exception AlertTextDoesNotEqual of string
+  exception UnableToFindElementsWithSelectorException of string
+  exception NoWebElementsDisplayedException of string
+  exception WebElementsDoNotMatchSuppliedTextException of string
+  exception WebElementIsReadOnlyException of IWebElement
+  exception WebElementSelectDoesNotContainTextException of string
+  exception WebElementIsNotCheckedException of IWebElement
+  exception WebElementIsCheckedException of IWebElement
+  exception NoOptionInSelectThatMatchesTextException of string
+  exception OptionIsNotSelectedException of string
+  exception AlertTextDoesNotEqualException of string
 
   let private wait (timeout : int) (continueFunction : ContinueFunction<'T>) =
     let stopwatch = System.Diagnostics.Stopwatch.StartNew()
@@ -126,7 +126,7 @@ module Marquee
           fun _ ->
             let elements = browser.FindElements((By.CssSelector cssSelector)) |> Seq.toArray
             match elements with
-            | [||] -> WaitFailure <| UnableToFindElementsWithSelector cssSelector
+            | [||] -> WaitFailure <| UnableToFindElementsWithSelectorException cssSelector
             | elements ->
               WaitSuccessful elements
         let elements =
@@ -147,7 +147,7 @@ module Marquee
       let assertionFunction = fun () ->
         let elements = this.FindElements cssSelector
         match elements |> Array.filter(isShown) with
-        | [||] -> raise <| NoWebElementsDisplayed cssSelector
+        | [||] -> raise <| NoWebElementsDisplayedException cssSelector
         | _ -> ()
       this.WaitForAssertion assertionFunction
 
@@ -169,14 +169,14 @@ module Marquee
         | [||] -> ()
         | elements ->
           let elements = elements |> Array.map(fun element -> Browser.ReadText element)
-          raise <| WebElementsDoNotMatchSuppliedText (sprintf "%s is not found in %A" testText elements)
+          raise <| WebElementsDoNotMatchSuppliedTextException (sprintf "%s is not found in %A" testText elements)
       this.WaitForAssertion assertionFunction
 
     member this.ClearInput cssSelector =
       let elements = this.FindElements cssSelector
       let clear (element : IWebElement) =
         match element.GetAttribute("readonly") with
-        | "true" -> raise <| WebElementIsReadOnly element
+        | "true" -> raise <| WebElementIsReadOnlyException element
         | _ -> element.Clear()
       elements |> Array.iter clear
 
@@ -184,7 +184,7 @@ module Marquee
       let elements = this.FindElements cssSelector
       let clear (element : IWebElement) =
         match element.GetAttribute("readonly") with
-        | "true" -> raise <| WebElementIsReadOnly element
+        | "true" -> raise <| WebElementIsReadOnlyException element
         | _ ->
           element.Clear()
           element.SendKeys(text)
@@ -197,7 +197,7 @@ module Marquee
           (Browser.ReadText element) <> text
         match elements  |> Array.tryFind testElementText with
         | Some _ -> ()
-        | None -> raise <| WebElementSelectDoesNotContainText text
+        | None -> raise <| WebElementSelectDoesNotContainTextException text
       this.WaitForAssertion assertionFunction
 
     member this.CheckElements cssSelector =
@@ -222,7 +222,7 @@ module Marquee
         let testElement (element : IWebElement) =
           match element.Selected with
           | true -> ()
-          | false -> raise <| WebElementIsNotChecked element
+          | false -> raise <| WebElementIsNotCheckedException element
         elements |> Array.iter testElement
       this.WaitForAssertion assertionFunction
 
@@ -231,7 +231,7 @@ module Marquee
         let elements = this.FindElements cssSelector
         let testElement (element : IWebElement) =
           match element.Selected with
-          | true -> raise <| WebElementIsChecked element
+          | true -> raise <| WebElementIsCheckedException element
           | false -> ()
         elements |> Array.iter testElement
       this.WaitForAssertion assertionFunction
@@ -242,7 +242,7 @@ module Marquee
         this.FindElements cssSelector
         |> Array.filter(fun element -> element.Text = option)
       match elements with
-      | [||] -> raise <| NoOptionInSelectThatMatchesText option
+      | [||] -> raise <| NoOptionInSelectThatMatchesTextException option
       | elements -> elements |> Array.iter(fun element -> element.Click())
 
     member this.IsOptionSelected option selectCssSelector =
@@ -251,11 +251,11 @@ module Marquee
         let elements =
           this.FindElements cssSelector
         match elements |> Array.tryFind(fun element -> element.Text = option) with
-        | None -> raise <| NoOptionInSelectThatMatchesText option
+        | None -> raise <| NoOptionInSelectThatMatchesTextException option
         | Some element ->
           match element.Selected with
           | true -> ()
-          | false -> raise <| OptionIsNotSelected option
+          | false -> raise <| OptionIsNotSelectedException option
       this.WaitForAssertion assertionFunction
 
     member this.AlertTextEquals text  =
@@ -263,7 +263,7 @@ module Marquee
         let alert = this.Instance.SwitchTo().Alert()
         match alert.Text = text with
         | true -> ()
-        | false -> raise <| AlertTextDoesNotEqual text
+        | false -> raise <| AlertTextDoesNotEqualException text
       this.WaitForAssertion assertionFunction
 
     member this.AcceptAlert () =

@@ -1,24 +1,36 @@
-/// Marquee
-///
-/// ## To Be Continued
-///   See Marquee.fsx
-///
+/// ## Marquee
+/// Marquee is a Selenium based UI Automation library. Inspired by [lefthandedgoat's excellent, C# compatible library - canopy]().
 module Marquee
   open OpenQA.Selenium
 
+  //## Types
+  //### BrowserDirectoryOption
+  //The BrowserDirectoryOption type is used for specifying the location of a web driver
+  //To specify a specific location use the following syntax
+  //SpecificDirectory "C:\webdrivers"
+  //Or use the CurrentDirectory option
   type BrowserDirectoryOption =
   | CurrentDirectory
   | SpecificDirectory of string
 
+  //### BrowserType
+  //BrowserType is used to define what browser the tests should use
+  //Current Options are Chrome, Firefox, or PhantomJs
+  //The BrowserType takes a BrowserDirectoryOption
+  //Use the syntax
+  //Chrome(CurrentDirectory)
+  //or
+  //Chrome(SpecificDirectory "C:\webdrivers")
   type BrowserType =
     | Chrome of BrowserDirectoryOption
     | Firefox of BrowserDirectoryOption
     | PhantomJs of BrowserDirectoryOption
-  type WaitResult<'T> =
+
+  type private WaitResult<'T> =
   | WaitSuccessful of 'T
   | WaitFailure of System.Exception
 
-  type ContinueFunction<'T> = unit -> WaitResult<'T>
+  type private ContinueFunction<'T> = unit -> WaitResult<'T>
   type WebElements = IWebElement array
 
   exception UnableToFindElementsWithSelectorException of string
@@ -52,6 +64,25 @@ module Marquee
         testContinueFunction lastActivationTime
     testContinueFunction -1000.0
 
+  //### BrowserConfiguration
+  //The BrowserConfiguration type is a record that is passed to the Browser.Create function
+  //For example
+  (*
+      let browserConfiguration : BrowserConfiguration =
+        {
+          BrowserType = Chrome(CurrentDirectory)
+          ElementTimeout = 5000
+          AssertionTimeout = 5000
+        }
+   *)
+  //#### BrowserType
+  //BrowserType in the BrowserConfiguration record sets what browser the webdriver should launch
+  //#### ElementTimeout
+  //The ElementTimeout in the BrowserConfiguration record is an integer that sets the amount of milliseconds that a Marquee action takes before giving up.
+  //This is useful when dealing with web content that is slow to update on the page
+  //#### AssertionTimeout
+  //The AssertionTimeout in the BrowserConfiguration record is an integer that sets the amount of milliseconds that a Marquee assertion takes before giving upd.
+  //This is useful when dealing with web content that is slow to update on the page
   type BrowserConfiguration =
     {
       BrowserType : BrowserType
@@ -59,6 +90,8 @@ module Marquee
       AssertionTimeout : int
     }
 
+  //### Browser
+  //Browser is the main record type for Browser manipulation in Marquee
   type Browser =
     {
       Instance : OpenQA.Selenium.IWebDriver
@@ -66,6 +99,18 @@ module Marquee
       AssertionTimeout : int
     }
 
+    //#### Create
+    //The Create function is used to create a live browser instance
+    //For example
+    (*
+    let browserConfiguration : BrowserConfiguration =
+      {
+        BrowserType = Chrome(CurrentDirectory)
+        ElementTimeout = 5000
+        AssertionTimeout = 5000
+      }
+    browserConfiguration |> Browser.Create
+     *)
     static member Create (configuration : BrowserConfiguration) : Browser =
       let getBrowserDirectory directoryOption =
         match directoryOption with
@@ -105,6 +150,9 @@ module Marquee
         AssertionTimeout = configuration.AssertionTimeout
        }
 
+    //#### Quit
+    //Quit is used to end the live browser instance
+    //When using the built in TestManager this function isn't necessary to call
     member this.Quit () =
       this.Instance.Quit()
 
@@ -119,6 +167,20 @@ module Marquee
         wait timeout continueFunction
       waitForAssertion this.AssertionTimeout assertionFunction
 
+    //#### FindElements
+    //FindElements searches the current page the browser is on for web elements that match the provided CSS selector
+    //For example
+    (*
+    let browserConfiguration : BrowserConfiguration =
+      {
+        BrowserType = Chrome(CurrentDirectory)
+        ElementTimeout = 5000
+        AssertionTimeout = 5000
+      }
+    let browser = browserConfiguration |> Browser.Create
+    let cssSelector = ".some_class"
+    browser.FindElements cssSelector
+    *)
     member this.FindElements cssSelector =
       let searchContext : ISearchContext = this.Instance :> ISearchContext
       let findElementsByCssSelector timeout cssSelector (browser : ISearchContext) =
@@ -135,10 +197,38 @@ module Marquee
       let elements = findElementsByCssSelector this.ElementTimeout cssSelector searchContext
       elements
 
+    //#### Click
+    //The Click function clicks all web elements that match the provided CSS Selector
+    //For example
+    (*
+    let browserConfiguration : BrowserConfiguration =
+      {
+        BrowserType = Chrome(CurrentDirectory)
+        ElementTimeout = 5000
+        AssertionTimeout = 5000
+      }
+    let browser = browserConfiguration |> Browser.Create
+    let cssSelector = ".some_button"
+    browser.Click cssSelector
+     *)
     member this.Click cssSelector =
       let elements = this.FindElements cssSelector
       elements |> Array.iter(fun element -> element.Click())
 
+    //#### Displayed
+    //The Displayed function asserts that some element that matches the provided CSS selector is displayed
+    //For example
+    (*
+    let browserConfiguration : BrowserConfiguration =
+      {
+        BrowserType = Chrome(CurrentDirectory)
+        ElementTimeout = 5000
+        AssertionTimeout = 5000
+      }
+    let browser = browserConfiguration |> Browser.Create
+    let cssSelector = ".welcome_text"
+    browser.Displayed cssSelector
+     *)
     member this.Displayed cssSelector =
       let isShown (element : IWebElement) =
         let opacity = element.GetCssValue("opacity")
@@ -151,6 +241,19 @@ module Marquee
         | _ -> ()
       this.WaitForAssertion assertionFunction
 
+    //#### Url
+    //The Url function navigates the browser to the supplied url string
+    //For example
+    (*
+    let browserConfiguration : BrowserConfiguration =
+      {
+        BrowserType = Chrome(CurrentDirectory)
+        ElementTimeout = 5000
+        AssertionTimeout = 5000
+      }
+    let browser = browserConfiguration |> Browser.Create
+    browser.Url "http://www.github.com"
+     *)
     member this.Url (url : string) =
       this.Instance.Navigate().GoToUrl(url)
 
@@ -160,6 +263,20 @@ module Marquee
         | _ ->
           element.Text
 
+    //#### ElementTextEquals
+    //The ElementTextEquals function asserts that all elements that match the provided cssSelector contains some text
+    //For example
+    (*
+    let browserConfiguration : BrowserConfiguration =
+      {
+        BrowserType = Chrome(CurrentDirectory)
+        ElementTimeout = 5000
+        AssertionTimeout = 5000
+      }
+    let browser = browserConfiguration |> Browser.Create
+    let cssSelector = ".welcome_message"
+    "Welcome to the website!" |> browser.ElementTextEquals cssSelector
+    *)
     member this.ElementTextEquals testText cssSelector =
       let elements = this.FindElements cssSelector
       //TODO replace filter with map filter operation
@@ -168,10 +285,24 @@ module Marquee
         match elements |> Array.filter(fun element -> (Browser.ReadText element) <> testText) with
         | [||] -> ()
         | elements ->
-          let elements = elements |> Array.map(fun element -> Browser.ReadText element)
+          let elements = elements |> Array.map(Browser.ReadText)
           raise <| WebElementsDoNotMatchSuppliedTextException (sprintf "%s is not found in %A" testText elements)
       this.WaitForAssertion assertionFunction
 
+    //#### ClearInput
+    //The ClearInput function clears the text input of all web elements that match the provided CSS selector
+    //For example
+    (*
+    let browserConfiguration : BrowserConfiguration =
+      {
+        BrowserType = Chrome(CurrentDirectory)
+        ElementTimeout = 5000
+        AssertionTimeout = 5000
+      }
+    let browser = browserConfiguration |> Browser.Create
+    let cssSelector = ".username"
+    browser.ClearInput cssSelector
+    *)
     member this.ClearInput cssSelector =
       let elements = this.FindElements cssSelector
       let clear (element : IWebElement) =
@@ -180,6 +311,19 @@ module Marquee
         | _ -> element.Clear()
       elements |> Array.iter clear
 
+    //#### SetInput
+    //The SetInput function sets the input text of all web elements that match the provided CSS selector
+    (*
+    let browserConfiguration : BrowserConfiguration =
+       {
+         BrowserType = Chrome(CurrentDirectory)
+         ElementTimeout = 5000
+         AssertionTimeout = 5000
+       }
+    let browser = browserConfiguration |> Browser.Create
+    let cssSelector = ".username"
+    "JohnDoe" |> browser.SetInput cssSelector
+     *)
     member this.SetInput text cssSelector =
       let elements = this.FindElements cssSelector
       let clear (element : IWebElement) =
@@ -190,6 +334,24 @@ module Marquee
           element.SendKeys(text)
       elements |> Array.iter clear
 
+    //#### TestExistsInElements
+    //The TestExistsInElements function asserts that at least one web element that matches the provided CSS selector also matches the supplied text
+    //This is different than ElementTextEquals because ElementTextEquals asserts that all elements match the provided text
+    //ElementTextEquals should be used when the CSS selector is specific to one type of web element
+    //TestExistsInElements should be used when the CSS selector is general and may gather multiple web elements
+
+    //For example
+      (*
+      let browserConfiguration : BrowserConfiguration =
+        {
+          BrowserType = Chrome(CurrentDirectory)
+          ElementTimeout = 5000
+          AssertionTimeout = 5000
+        }
+      let browser = browserConfiguration |> Browser.Create
+      let cssSelector = "div"
+      "Welcome to the website!" |> browser.TextExistsInElements cssSelector
+    *)
     member this.TextExistsInElements text cssSelector =
       let assertionFunction = fun () ->
         let elements = this.FindElements cssSelector
@@ -200,6 +362,20 @@ module Marquee
         | None -> raise <| WebElementSelectDoesNotContainTextException text
       this.WaitForAssertion assertionFunction
 
+    //#### CheckElements
+    //The CheckElements function performs the check action on a checkbox web element
+    //For example
+    (*
+      let browserConfiguration : BrowserConfiguration =
+           {
+             BrowserType = Chrome(CurrentDirectory)
+             ElementTimeout = 5000
+             AssertionTimeout = 5000
+           }
+      let browser = browserConfiguration |> Browser.Create
+      let cssSelector = ".some_checkbox"
+      browser.CheckElements cssSelector
+     *)
     member this.CheckElements cssSelector =
       let elements = this.FindElements cssSelector
       let check (element : IWebElement) =
@@ -208,6 +384,20 @@ module Marquee
         | false -> element.Click()
       elements |> Array.iter check
 
+    //#### UnCheckElements
+    //The UnCheckElements function performs the uncheck action on a checkbox web element
+    //For example
+    (*
+      let browserConfiguration : BrowserConfiguration =
+      {
+        BrowserType = Chrome(CurrentDirectory)
+        ElementTimeout = 5000
+        AssertionTimeout = 5000
+      }
+      let browser = browserConfiguration |> Browser.Create
+      let cssSelector = ".some_checkbox"
+      browser.UnCheckElements cssSelector
+     *)
     member this.UnCheckElements cssSelector =
       let elements = this.FindElements cssSelector
       let check (element : IWebElement) =
@@ -216,6 +406,20 @@ module Marquee
         | false -> ()
       elements |> Array.iter check
 
+    //#### AreElementsChecked
+    //The AreElementsChecked function asserts that all web elements gathered by the provided CSS selector are checked
+    //For example
+    (*
+      let browserConfiguration : BrowserConfiguration =
+      {
+        BrowserType = Chrome(CurrentDirectory)
+        ElementTimeout = 5000
+        AssertionTimeout = 5000
+      }
+      let browser = browserConfiguration |> Browser.Create
+      let cssSelector = ".some_checkbox"
+      browser.AreElementsChecked cssSelector
+     *)
     member this.AreElementsChecked cssSelector =
       let assertionFunction = fun () ->
         let elements = this.FindElements cssSelector
@@ -226,6 +430,20 @@ module Marquee
         elements |> Array.iter testElement
       this.WaitForAssertion assertionFunction
 
+    //#### AreElementsUnChecked
+    //The AreElementsUnChecked function asserts that all web elements gathered by the provided CSS selector are unchecked
+    //For example
+    (*
+      let browserConfiguration : BrowserConfiguration =
+      {
+        BrowserType = Chrome(CurrentDirectory)
+        ElementTimeout = 5000
+        AssertionTimeout = 5000
+      }
+      let browser = browserConfiguration |> Browser.Create
+      let cssSelector = ".some_checkbox"
+      browser.AreElementsUnChecked cssSelector
+     *)
     member this.AreElementsUnChecked cssSelector =
       let assertionFunction = fun () ->
         let elements = this.FindElements cssSelector

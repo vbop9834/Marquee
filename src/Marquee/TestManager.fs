@@ -41,16 +41,16 @@ type private TestWorker =
             match msg with
             | Work ((testDescription, testFunction), reportFunction, replyChannel) ->
               replyChannel.Reply()
-              let browser = browserConfiguration |> Marquee.Browser.Create
               let testResult : TestResult =
                 try
+                  let browser = browserConfiguration |> Marquee.Browser.Create
                   browser |> testFunction
+                  browser.Quit()
                   TestPassed
                 with
                 | ex ->
                   TestFailed(ex)
-              browser.Quit()
-              (testDescription,testResult) |> reportFunction 
+              (testDescription,testResult) |> reportFunction
               return! loop ()
             | EndWorker ->
               ()

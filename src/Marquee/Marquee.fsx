@@ -54,7 +54,7 @@ let phantomJsBrowser = CurrentDirectory |> PhantomJs
   This is normally handled by the Test Manager.
 *)
 let browserConfiguration : BrowserConfiguration = {
-  BrowserType = phantomJsBrowser
+  BrowserType = firefoxBrowser
   AssertionTimeout = 5000
   ElementTimeout = 5000
 }
@@ -79,7 +79,7 @@ TestManagerConfiguration -> TestManager
 *)
 let testManagerConfiguration : TestManagerConfiguration =
   {
-    BrowserType = chromeBrowser
+    BrowserType = firefoxBrowser
     InfoFunction = ConsoleReporter.infoFunction
     TestResultsFunction = testResultsFunction
     AmountOfBrowsers = amountOfBrowsers

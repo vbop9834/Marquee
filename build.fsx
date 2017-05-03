@@ -52,14 +52,14 @@ let configuration = "Release"
 
 // Git configuration (used for publishing documentation in gh-pages branch)
 // The profile where the project is posted
-let gitOwner = "Jeremy Bellows"
+let gitOwner = "JeremyBellows"
 let gitHome = sprintf "%s/%s" "https://github.com/JeremyBellows/marquee" gitOwner
 
 // The name of the project on GitHub
 let gitName = "Marquee"
 
 // The url for the raw files hosted
-let gitRaw = environVarOrDefault "gitRaw" "https://raw.githubusercontent.com/Jeremy Bellows"
+let gitRaw = environVarOrDefault "gitRaw" "https://raw.githubusercontent.com/JeremyBellows"
 
 // --------------------------------------------------------------------------------------
 // END TODO: The rest of the file includes standard build steps
@@ -146,7 +146,7 @@ Target "Build" (fun _ ->
 Target "RunTests" (fun _ ->
                let result =
                  ExecProcess (fun info ->
-                              info.FileName <- "./tests/Marquee.Tests/bin/Release/Marquee.Tests.exe"
+                              info.FileName <- sprintf "%s/tests/Marquee.Tests/bin/Release/Marquee.Tests.exe" __SOURCE_DIRECTORY__
                               info.WorkingDirectory <- (sprintf "%s/tests/Marquee.Tests/bin/Release" __SOURCE_DIRECTORY__)
                               ) (System.TimeSpan.FromMinutes 5.0)
                if result <> 0 then failwith "Marquee tests failed"

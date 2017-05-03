@@ -127,7 +127,9 @@ let vsProjProps =
 #endif
 
 Target "Clean" (fun _ ->
-    !! solutionFile |> MSBuildReleaseExt "" vsProjProps "Clean" |> ignore
+    !! "/**/**/*.fsproj"
+    |> MSBuildReleaseExt "" vsProjProps "Clean"
+    |> Log "Clean output - "
     CleanDirs ["bin"; "temp"; "docs/output"]
 )
 
@@ -135,9 +137,9 @@ Target "Clean" (fun _ ->
 // Build library & test project
 
 Target "Build" (fun _ ->
-    !! solutionFile
+    !! "/**/**/*.fsproj"
     |> MSBuildReleaseExt "" vsProjProps "Rebuild"
-    |> ignore
+    |> Log "Build output - "
 )
 
 // --------------------------------------------------------------------------------------

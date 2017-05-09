@@ -11,6 +11,7 @@ The marquee test suite is broken down into the following components.
 - exit the program
 *)
 
+#I "../../bin"
 #I __SOURCE_DIRECTORY__
 #I "../../packages/Selenium.WebDriver/lib/net40"
 
@@ -44,6 +45,7 @@ let specificAmountOfBrowsers = IWantThisManyBrowsers 10
 Currently supported browsers are
 - Chrome
 - Firefox
+- PhantomJS
 *)
 let chromeBrowser = Chrome(CurrentDirectory)
 let firefoxBrowser = SpecificDirectory __SOURCE_DIRECTORY__ |> Firefox

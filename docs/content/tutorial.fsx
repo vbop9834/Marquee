@@ -13,7 +13,3 @@ Say more
 #r "Marquee.dll"
 open Marquee
 
-Library.hello 0
-(**
-Some more info
-*)

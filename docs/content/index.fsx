@@ -20,48 +20,192 @@ Documentation
   <div class="span1"></div>
 </div>
 
-Example
--------
-
-This example demonstrates using a function defined in this sample library.
+## Marquee
+Marquee is a Selenium based UI Automation library. Inspired by [lefthandedgoat's excellent, C# compatible library - canopy]().
 
 *)
 #r "Marquee.dll"
 open Marquee
 
-printfn "hello = %i" <| Library.hello 0
+//## Types
+//The following sections describe the various types that Marquee uses
+//### BrowserDirectoryOption
+//The BrowserDirectoryOption type is used for specifying the location of a web driver
+//To specify a specific location use the following syntax
+BrowserDirectoryOption.SpecificDirectory "C:\webdrivers"
+//Or use the CurrentDirectory option
+BrowserDirectoryOption.CurrentDirectory
+
+//### BrowserType
+//BrowserType is used to define what browser the tests should use
+//Current Options are Chrome, Firefox, or PhantomJs
+//The BrowserType takes a BrowserDirectoryOption
+//Use the syntax
+BrowserType.Chrome(CurrentDirectory)
+//or
+BrowserType.Chrome(SpecificDirectory "C:\webdrivers")
+
+//### BrowserConfiguration
+//The BrowserConfiguration type is a record that is passed to the Browser.Create function
+//For example
+let browserConfiguration : BrowserConfiguration =
+  {
+    BrowserType = Chrome(CurrentDirectory)
+    ElementTimeout = 5000
+    AssertionTimeout = 5000
+  }
+
+//#### BrowserType
+//BrowserType in the BrowserConfiguration record sets what browser the webdriver should launch
+//#### ElementTimeout
+//The ElementTimeout in the BrowserConfiguration record is an integer that sets the amount of milliseconds that a Marquee action takes before giving up.
+//This is useful when dealing with web content that is slow to update on the page
+//#### AssertionTimeout
+//The AssertionTimeout in the BrowserConfiguration record is an integer that sets the amount of milliseconds that a Marquee assertion takes before giving upd.
+//This is useful when dealing with web content that is slow to update on the page
+
+//### Browser
+//Browser is the main record type for Browser manipulation in Marquee
+//#### Create
+//The Create function is used to create a live browser instance
+//For example
+let browserConfiguration : BrowserConfiguration =
+  {
+    BrowserType = Chrome(CurrentDirectory)
+    ElementTimeout = 5000
+    AssertionTimeout = 5000
+  }
+browserConfiguration |> Browser.Create
+
+//#### Url
+//The Url function navigates the browser to the supplied url string
+//For example
+browser.Url "http://www.github.com"
+
+//#### Quit
+//Quit is used to end the live browser instance
+//When using the built in TestManager this function isn't necessary to call
+browser.Quit()
+
+
+//#### FindElements
+//FindElements searches the current page the browser is on for web elements that match the provided CSS selector
+//For example
+let cssSelector = ".some_class"
+browser.FindElements cssSelector
+
+//#### Click
+//The Click function clicks all web elements that match the provided CSS Selector
+//For example
+let cssSelector = ".some_button"
+browser.Click cssSelector
+
+//#### Displayed
+//The Displayed function asserts that some element that matches the provided CSS selector is displayed
+//For example
+let cssSelector = ".welcome_text"
+browser.Displayed cssSelector
+
+//#### ElementTextEquals
+//The ElementTextEquals function asserts that all elements that match the provided cssSelector contains some text
+//For example
+let cssSelector = ".welcome_message"
+"Welcome to the website!" |> browser.ElementTextEquals cssSelector
+
+//#### ClearInput
+//The ClearInput function clears the text input of all web elements that match the provided CSS selector
+//For example
+let cssSelector = ".username"
+browser.ClearInput cssSelector
+
+//#### SetInput
+//The SetInput function sets the input text of all web elements that match the provided CSS selector
+let cssSelector = ".username"
+"JohnDoe" |> browser.SetInput cssSelector
+
+//#### TestExistsInElements
+//The TestExistsInElements function asserts that at least one web element that matches the provided CSS selector also matches the supplied text
+//This is different than ElementTextEquals because ElementTextEquals asserts that all elements match the provided text
+//ElementTextEquals should be used when the CSS selector is specific to one type of web element
+//TestExistsInElements should be used when the CSS selector is general and may gather multiple web elements
+
+//For example
+let cssSelector = "div"
+"Welcome to the website!" |> browser.TextExistsInElements cssSelector
+
+//#### CheckElements
+//The CheckElements function performs the check action on a checkbox web element
+//For example
+let cssSelector = ".some_checkbox"
+browser.CheckElements cssSelector
+
+//#### UnCheckElements
+//The UnCheckElements function performs the uncheck action on a checkbox web element
+//For example
+let cssSelector = ".some_checkbox"
+browser.UnCheckElements cssSelector
+
+//#### AreElementsChecked
+//The AreElementsChecked function asserts that all web elements gathered by the provided CSS selector are checked
+//For example
+let cssSelector = ".some_checkbox"
+browser.AreElementsChecked cssSelector
+
+//#### AreElementsUnChecked
+//The AreElementsUnChecked function asserts that all web elements gathered by the provided CSS selector are unchecked
+//For example
+let cssSelector = ".some_checkbox"
+browser.AreElementsUnChecked cssSelector
 
 (**
-Some more info
+#### SetSelectOption
+The SetSelectOption function sets a select web element to the specified option
 
-Samples & documentation
------------------------
+For example
+Say we wanted to select Option One for the following html snippet
+<select class="some_select">
+  <option>Option One</option>
+  <option>Option Two</option>
+  <option>Option Three</option>
+</select>
+ **)
+let cssSelector = ".some_select"
+cssSelector |> browser.SetSelectOption "Option One"
 
-The library comes with comprehensible documentation. 
-It can include tutorials automatically generated from `*.fsx` files in [the content folder][content]. 
-The API reference is automatically generated from Markdown comments in the library implementation.
+(**
+#### IsOptionSelected
+The IsOptionSelected function asserts that the specified option in a select web element is selected
+**)
+let cssSelector = ".some_select"
+cssSelector |> browser.SetSelectOption "Option One"
+cssSelector |> browser.IsOptionSelected "Option One"
 
- * [Tutorial](tutorial.html) contains a further explanation of this sample library.
+(**
+#### AlertTextEquals
+The AlertTextEquals function asserts that a browser alert has the supplied text
+**)
+browser.AlertTextEquals "Warning!"
 
- * [API Reference](reference/index.html) contains automatically generated documentation for all types, modules
-   and functions in the library. This includes additional brief samples on using most of the
-   functions.
+(**
+#### AcceptAlert
+The AcceptAlert function initiates the accept action on a browser alert
+**)
+browser.AcceptAlert ()
+
+(**
+#### DismissAlert
+The DismissAlert function initiates the dismiss action on a browser alert
+**)
+browser.DismissAlert ()
+
+(**
  
 Contributing and copyright
 --------------------------
 
-The project is hosted on [GitHub][gh] where you can [report issues][issues], fork 
-the project and submit pull requests. If you're adding a new public API, please also 
-consider adding [samples][content] that can be turned into a documentation. You might
-also want to read the [library design notes][readme] to understand how it works.
-
-The library is available under Public Domain license, which allows modification and 
-redistribution for both commercial and non-commercial purposes. For more information see the 
-[License file][license] in the GitHub repository. 
-
   [content]: https://github.com/fsprojects/Marquee/tree/master/docs/content
-  [gh]: https://github.com/fsprojects/Marquee
-  [issues]: https://github.com/fsprojects/Marquee/issues
-  [readme]: https://github.com/fsprojects/Marquee/blob/master/README.md
-  [license]: https://github.com/fsprojects/Marquee/blob/master/LICENSE.txt
+  [gh]: https://github.com/jeremybellows/Marquee
+  [issues]: https://github.com/jeremybellows/Marquee/issues
+  [readme]: https://github.com/jeremybellows/Marquee/blob/master/README.md
+  [license]: https://github.com/jeremybellows/Marquee/blob/master/LICENSE.txt
 *)

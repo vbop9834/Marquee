@@ -1,4 +1,4 @@
-.PHONY: build test
+.PHONY: build test docs
 
 test:
 	$(info Running Tests...)
@@ -7,3 +7,7 @@ test:
 build:
 	$(info Building Solution...)
 	sh build.sh Build
+
+docs:
+	$(info Building Solution...)
+	sh build.sh GenerateDocs

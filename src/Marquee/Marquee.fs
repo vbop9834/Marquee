@@ -27,6 +27,7 @@ module Marquee
   exception NoOptionInSelectThatMatchesTextException of string
   exception OptionIsNotSelectedException of string
   exception AlertTextDoesNotEqualException of string
+  exception BrowserPageIsNotExpectedUrlException of string
 
   let private wait (timeout : int) (continueFunction : ContinueFunction<'T>) =
     let stopwatch = System.Diagnostics.Stopwatch.StartNew()
@@ -149,6 +150,16 @@ module Marquee
 
     member this.Url (url : string) =
       this.Instance.Navigate().GoToUrl(url)
+
+    member this.IsOnPage testUrl =
+      let assertionFunction = fun () ->
+        let currentUrl = this.Instance.Url
+        match currentUrl = testUrl with
+        | true ->
+          ()
+        | false ->
+          raise <| BrowserPageIsNotExpectedUrlException(sprintf "Expected %s but browser was on %s" testUrl currentUrl)
+      this.WaitForAssertion assertionFunction
 
     static member private ReadText (element : IWebElement) =
         match element.TagName.ToLower() with

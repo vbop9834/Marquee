@@ -61,7 +61,8 @@ let browserConfiguration : BrowserConfiguration = {
   ElementTimeout = 5000
 }
 let browser = browserConfiguration |> Browser.Create
-
+browser.Url "http://www.google.com"
+"#lst-ib" |> browser.SetInput "what is love"
 (**
 ### TestResultsFunction
 The TestResultsFunction is used for configuring how test results are reported or saved
@@ -117,8 +118,9 @@ let (--) testDescription testFunc = testManager.Register testDescription testFun
 (**
 alternative is to register tests using the following
 ```
-testManager.Register "If some action occurs something specific should happen" fun browser ->
+testManager.Register "If some action occurs something specific should happen" (fun browser ->
   browser.Url "www.eff.org"
+)
 ```
 *)
 
